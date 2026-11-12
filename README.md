@@ -1,400 +1,276 @@
-# Superpowers
+# GarbageGo
 
-Superpowers is a complete software development methodology for your coding agents, built on top of a set of composable skills and some initial instructions that make sure your agent uses them.
+臺中市垃圾清運收運點查詢與到點可行性推薦系統。
 
-## Table of Contents
+GarbageGo 是一個結合 Domain AI Agent、GIS、垃圾車資料與 ETA Prediction 的垃圾清運推薦系統。系統的目標不是只找最近的收運點，而是判斷使用者現在出發後，是否還有機會趕上垃圾車。
 
-- [How it works](#how-it-works)
-- [Commercial Services](#commercial-services)
-- [Getting Started](#installation)
-  - [Claude Code](#claude-code)
-  - [Antigravity](#antigravity)
-  - [Codex App](#codex-app)
-  - [Codex CLI](#codex-cli)
-  - [Cursor](#cursor)
-  - [Devin CLI](#devin-cli)
-  - [Factory Droid](#factory-droid)
-  - [Gemini CLI](#gemini-cli)
-  - [GitHub Copilot CLI](#github-copilot-cli)
-  - [Grok Build CLI](#grok-build-cli)
-  - [Kimi Code](#kimi-code)
-  - [OpenCode](#opencode)
-  - [Pi](#pi)
-  - [Qwen Code](#qwen-code)
-  - [Hermes Agent](#hermes-agent)
-  - [Muse](#muse)
-- [The Basic Workflow](#the-basic-workflow)
-- [When Something Goes Wrong](#when-something-goes-wrong)
-- [Community](#community)
-- [What's Inside](#whats-inside)
-- [Philosophy](#philosophy)
-- [Contributing](#contributing)
-- [Updating](#updating)
-- [License](#license)
-- [Visual companion telemetry](#visual-companion-telemetry)
+> **Status:** Proposal / Initial Design
+>
+> 目前專案正在進行資料可行性分析與系統設計，尚未完成正式服務或即時推薦功能。
 
-## How it works
+## Problem
 
-It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do. 
+使用者只知道最近的收運點，不代表現在走過去還來得及。垃圾車的預定時間也不一定等於實際抵達時間，GPS 資料還可能延遲、缺失或不夠精確。
 
-Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest. 
+GarbageGo 要回答的核心問題是：
 
-After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY. 
+> **使用者現在應該前往哪一個收運點，才最可能趕上垃圾車？**
 
-Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for your agent to work autonomously for a couple hours at a time without deviating from the plan you put together.
+## Proposed Solution
 
-There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Superpowers.
+GarbageGo 將整合下列資料與分析能力：
 
-## Commercial Services
+- 使用者位置與自然語言查詢
+- 附近收運點與清運時段
+- 垃圾車動態資料
+- 歷史 JSON 資料
+- GIS 距離與步行時間分析
+- 垃圾車 ETA 估計
+- 候選收運點可行性評估
+- 推薦理由、風險與備選方案
 
-If you're using Superpowers in enterprise and could benefit from commercial support, additional tooling, or managed spending, please don't hesitate to drop us a line at sales@primeradiant.com.
+LLM Agent 負責理解使用者需求、協調工具與說明結果；GIS、ETA 與 Recommendation Engine 負責產生實際計算結果。LLM 不直接猜測 GPS、距離或 ETA。
+
+## Main Scenario
+
+使用者詢問：
+
+> 「我現在附近哪裡可以丟垃圾？」
+
+系統預計執行以下流程：
+
+1. 取得使用者授權的位置。
+2. 搜尋附近且符合清運條件的候選收運點。
+3. 取得垃圾車動態資料與資料時間。
+4. 估計使用者走到各收運點所需的時間。
+5. 估計垃圾車到達各收運點的 ETA。
+6. 計算使用者是否還有足夠時間抵達。
+7. 顯示推薦點、推薦理由、資料風險與備選點。
+
+## System Architecture
+
+```mermaid
+flowchart TD
+    U[User / Web App] --> A[LLM Agent / Orchestrator]
+    A --> G[GIS Engine]
+    A --> E[ETA Engine]
+    A --> R[Recommendation Engine]
+    D[Official API / Historical JSON] --> V[Data Acquisition & Validation]
+    V --> G
+    V --> E
+    G --> R
+    E --> R
+    R --> A
+    A --> O[Recommendation + Explanation + Map]
+```
+
+主要模組如下：
+
+| Module | Responsibility | Status |
+|---|---|---|
+| Data Acquisition | 取得官方 API 與歷史 JSON 資料 | Planned |
+| Data Validation | 檢查時間、座標、欄位與資料新鮮度 | Planned |
+| GIS Engine | 搜尋附近收運點與估計步行時間 | Planned |
+| ETA Engine | 估計垃圾車到達時間與不確定性 | Planned |
+| Recommendation Engine | 計算可行性、排序與備選方案 | Planned |
+| LLM Agent / Orchestrator | 理解需求、協調工具與說明結果 | Planned |
+| User Interface | 呈現地圖、推薦結果與風險提示 | Planned |
+
+初版預計採用**模組化單體架構（Modular Monolith）+ PostgreSQL/PostGIS**。這是 Proposal 階段的架構方向，尚未完成正式技術選型核准或實作。
+
+詳細架構草稿請參考：
+
+- [System Design](DESIGN.md)
+- [Modular Monolith Architecture](docs/architecture/modular-monolith.md)
+
+## Data Sources
+
+| Data | Intended Use | Status |
+|---|---|---|
+| [臺中市垃圾清運及資源回收車動態資訊](https://data.gov.tw/dataset/83558) | 車輛位置、路線、時間與速度資料 | To Verify |
+| 歷史 JSON 資料 | ETA 統計、模型訓練與評估 | Available / To Validate |
+| 收運點與清運時段資料 | 候選收運點查詢與清運條件判斷 | To Verify |
+| 地圖／路徑服務 | 使用者步行時間估計 | To Decide |
+
+官方資料頁面目前標示提供 JSON 資料，主要欄位包含 `lineid`、`car`、`time`、`location`、`X`、`Y`、`SpeedValue` 與 `OverSpeed`，更新頻率為每 10 分鐘。
+
+歷史資料與 API 使用相同格式，預計使用同一套 Data Ingestion 與資料模型處理。系統應區分：
+
+- `observed_at`：資料描述的時間。
+- `collected_at`：系統實際收到或匯入資料的時間。
+
+由於資料更新間隔、資料延遲、座標品質與車輛停留狀態仍需驗證，系統不會把 ETA 描述成保證時間。
+
+## Core Decision Logic
+
+對每個候選收運點計算時間餘裕：
+
+```text
+slack = truck_ETA - walking_time - safety_buffer
+```
+
+其中：
+
+- `truck_ETA`：垃圾車到達候選收運點的預估剩餘時間。
+- `walking_time`：使用者步行到候選收運點的預估時間。
+- `safety_buffer`：吸收資料延遲、預測誤差與行走差異的緩衝時間。
+- `slack`：扣除風險後的剩餘時間。
+
+`slack > 0` 不代表一定能趕上，只代表在目前資料與假設下具備可行性。
+
+推薦時還需要考慮：
+
+- 收運點是否在有效清運時段。
+- 垃圾車是否已經離開。
+- ETA 的不確定性。
+- GPS 或動態資料是否過期。
+- 是否有其他可行的替代收運點。
+
+## MVP Scope
+
+第一版預計聚焦下列功能：
+
+- 附近收運點搜尋。
+- 官方垃圾車資料匯入。
+- 歷史 JSON 資料匯入。
+- 使用者步行時間估計。
+- 垃圾車 ETA Baseline。
+- 時間餘裕計算。
+- 可行收運點推薦。
+- 備選收運點搜尋。
+- 資料時間與不確定性提示。
+
+### Non-Goals for v0.1
+
+- 不承諾涵蓋臺中市所有路線或收運點。
+- 不承諾提供秒級即時定位。
+- 不保證垃圾車準時抵達。
+- 不預先假定必須使用 Deep Learning。
+- 不讓 LLM 自行推測 GPS、步行時間或 ETA。
+- 不在資料可行性確認前承諾正式上線或推播服務。
+
+## Current Status
+
+| Area | Status | Notes |
+|---|---|---|
+| Requirements | Draft | 待進一步確認需求與驗收條件 |
+| Architecture | Proposed | 已建立邏輯架構，部署方式尚未定案 |
+| Official Data Verification | To Verify | 需要確認欄位、座標、更新頻率與資料品質 |
+| Historical JSON Import | Planned | 歷史資料格式與 API 相同，尚未建立匯入流程 |
+| GIS Engine | Planned | 尚未實作 |
+| ETA Engine | Planned | 尚未選型或訓練 |
+| Recommendation Engine | Planned | 目前只有概念性規則 |
+| LLM Agent | Planned | 尚未實作 |
+| UI / Map | Planned | 尚未實作 |
+| Evaluation | Planned | 尚無實驗結果 |
+
+## Repository Structure
+
+```text
+GarbageGo/
+├── AGENTS.md
+├── CLAUDE.md
+├── DESIGN.md
+├── README.md
+├── docs/
+│   ├── architecture/
+│   ├── plans/
+│   └── specs/
+├── .agents/
+├── .claude/
+├── .env                 # Local only, ignored by Git
+└── .gitignore
+```
+
+`.env` 僅供本機設定使用，不應放入 API Key、Token 或密碼以外的非必要敏感資訊，也不得提交至 Git。歷史 JSON 資料不建議直接提交至 repository，應另外管理並在文件中記錄來源與限制。
 
 ## Installation
 
-Installation differs by harness. If you use more than one, install Superpowers separately for each one.
+目前專案仍處於 Proposal 與資料可行性分析階段，尚未提供正式可執行服務，因此暫無完整安裝指令。
 
-### Claude Code
+正式實作後，本節將補充：
 
-Superpowers is available via the [official Claude plugin marketplace](https://claude.com/plugins/superpowers)
+- 環境需求。
+- Python、Node.js 或其他必要工具版本。
+- 相依套件安裝方式。
+- PostgreSQL / PostGIS 設定方式。
+- `.env` 設定方式。
 
-#### Official Marketplace
+## How to Run
 
-- Install the plugin from Anthropic's official marketplace:
+目前尚未提供可執行的 Backend、Frontend 或資料匯入服務。
 
-  ```bash
-  /plugin install superpowers@claude-plugins-official
-  ```
+正式實作後，本節將補充：
 
-#### Superpowers Marketplace
+1. 建立資料庫。
+2. 設定 `.env`。
+3. 匯入官方與歷史資料。
+4. 啟動 Backend API。
+5. 啟動 Web UI。
+6. 執行測試與驗證流程。
 
-The Superpowers marketplace provides Superpowers and some other related plugins for Claude Code.
+## Demo
 
-- Register the marketplace:
+目前尚無可公開使用的 Demo。Demo 將在 MVP 完成並通過基本驗證後補充。
 
-  ```bash
-  /plugin marketplace add obra/superpowers-marketplace
-  ```
+預計 Demo 會展示：
 
-- Install the plugin from this marketplace:
+- 使用者位置輸入。
+- 附近收運點搜尋。
+- 垃圾車 ETA 顯示。
+- 是否趕得上的判斷。
+- 推薦理由、資料時間與風險提示。
+- 備選收運點。
 
-  ```bash
-  /plugin install superpowers@superpowers-marketplace
-  ```
+## Evaluation Plan
 
-### Antigravity
+預計使用固定測試資料與歷史資料評估系統，並比較不同 ETA 方法：
 
-Install Superpowers as a plugin from this repository:
+- Schedule Baseline。
+- 歷史平均 ETA。
+- Distance / Speed Baseline。
+- 後續評估的統計或 Machine Learning 方法。
 
-```bash
-agy plugin install https://github.com/obra/superpowers
-```
+預計評估指標包含：
 
-Antigravity lists each installed skill's description, and the description of
-the `using-superpowers` skill prompts the model to load that skill at the start
-of a conversation. Reinstall with the same command to update.
+- ETA MAE。
+- ETA RMSE。
+- 趕上率。
+- 誤判率。
+- 備案有效率。
+- 資料過期識別率。
+- API 失敗與降級處理結果。
 
-### Codex App
+目前尚未完成實驗，因此不填入預測或虛構數值。
 
-Superpowers is available via the [official Codex plugin marketplace](https://github.com/openai/plugins).
+## Documentation
 
-- In the Codex app, click on Plugins in the sidebar.
-- You should see `Superpowers` in the Coding section.
-- Click the `+` next to Superpowers and follow the prompts.
+- [System Design](DESIGN.md)
+- [Architecture](docs/architecture/)
+- [Development Plans](docs/plans/)
+- [Specifications](docs/specs/)
+- [Project Instructions](AGENTS.md)
 
-### Codex CLI
+## Limitations
 
-Superpowers is available via the [official Codex plugin marketplace](https://github.com/openai/plugins).
+- 官方資料更新頻率可能限制即時 ETA 精度。
+- 目前尚未確認所有路線、車輛與收運點能否可靠對應。
+- 尚未確認步行路徑服務與步行時間的資料來源。
+- 歷史資料仍需要進行清理、驗證與時間切分。
+- 沒有足夠資料時，系統必須顯示不確定性，而不是產生精確但沒有依據的結果。
 
-- Open the plugin search interface:
+## Future Work
 
-  ```bash
-  /plugins
-  ```
-
-- Search for Superpowers:
-
-  ```bash
-  superpowers
-  ```
-
-- Select `Install Plugin`.
-
-### Cursor
-
-- In Cursor Agent chat, install from marketplace:
-
-  ```text
-  /add-plugin superpowers
-  ```
-
-- Or search for "superpowers" in the plugin marketplace.
-
-### Devin CLI
-
-- Install the plugin from this repository:
-
-  ```bash
-  devin plugins install obra/superpowers
-  ```
-
-- Update to the latest version with:
-
-  ```bash
-  devin plugins update superpowers
-  ```
-
-### Factory Droid
-
-- Register the marketplace:
-
-  ```bash
-  droid plugin marketplace add https://github.com/obra/superpowers
-  ```
-
-- Install the plugin:
-
-  ```bash
-  droid plugin install superpowers@superpowers
-  ```
-
-### Gemini CLI
-
-- Install the extension:
-
-  ```bash
-  gemini extensions install https://github.com/obra/superpowers
-  ```
-
-- Update later:
-
-  ```bash
-  gemini extensions update superpowers
-  ```
-
-### GitHub Copilot CLI
-
-- Register the marketplace:
-
-  ```bash
-  copilot plugin marketplace add obra/superpowers-marketplace
-  ```
-
-- Install the plugin:
-
-  ```bash
-  copilot plugin install superpowers@superpowers-marketplace
-  ```
-
-### Grok Build CLI
-
-Superpowers is available via the [official Grok plugin marketplace](https://github.com/xai-org/plugin-marketplace).
-
-- Install the plugin from xAI's official marketplace:
-
-  ```bash
-  grok plugin install superpowers@xai-official --trust
-  ```
-
-- Or open the marketplace in the TUI, search for Superpowers, and install it:
-
-  ```text
-  /marketplace
-  ```
-
-### Kimi Code
-
-Superpowers is available in Kimi Code's plugin marketplace.
-
-- Open Kimi Code's plugin manager:
-
-  ```text
-  /plugins
-  ```
-
-- Go to `Marketplace` > `Superpowers` and install it.
-
-- Or install directly from this repository:
-
-  ```text
-  /plugins install https://github.com/obra/superpowers
-  ```
-
-- Detailed docs: [docs/README.kimi.md](docs/README.kimi.md)
-
-### OpenCode
-
-OpenCode uses its own plugin install; install Superpowers separately even if you
-already use it in another harness.
-
-- Tell OpenCode:
-
-  ```
-  Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
-  ```
-
-- Detailed docs: [docs/README.opencode.md](docs/README.opencode.md)
-
-### Pi
-
-Install Superpowers as a Pi package from this repository:
-
-```bash
-pi install git:github.com/obra/superpowers
-```
-
-For local development, run Pi with this checkout loaded as a temporary package:
-
-```bash
-pi -e /path/to/superpowers
-```
-
-The Pi package loads the Superpowers skills and a small extension that injects the `using-superpowers` bootstrap at session startup and again after compaction. Pi has native skills, so no compatibility `Skill` tool is required. Subagent and task-list tools remain optional Pi companion packages.
-
-### Qwen Code
-
-Qwen Code installs plugins from Claude Code marketplaces directly.
-
-- Install the plugin from this repository, and pick `superpowers` when prompted:
-
-  ```bash
-  qwen extensions install obra/superpowers
-  ```
-
-- Update later:
-
-  ```bash
-  qwen extensions update superpowers
-  ```
-
-### Hermes Agent
-
-Install Superpowers as a Hermes plugin from this repository:
-
-```bash
-hermes plugins install obra/superpowers --enable
-```
-
-Restart any active Hermes sessions after installing. Note: Hermes has no
-post-compaction hook, so a very long session that compacts over its first
-turn loses the bootstrap — start a fresh session if skills stop triggering.
-
-### Muse
-
-Superpowers is available as a native Muse plugin — same repo, same skills, all harnesses. The `using-superpowers` bootstrap is injected via the native `SessionStart` hook alongside Claude Code, Codex, Cursor, Gemini, Pi, and the rest — no per-session opt-in.
-
-- Install from a local checkout:
-
-  ```bash
-  muse plugins install ./
-  muse plugins approve superpowers
-  ```
-
-  Or clone and install:
-
-  ```bash
-  git clone https://github.com/obra/superpowers.git
-  muse plugins install ./superpowers
-  muse plugins approve superpowers
-  ```
-
-- Update later:
-
-  ```bash
-  muse plugins update superpowers
-  ```
-
-Restart any active Muse sessions after installing so the `SessionStart` hook takes effect — skills are active immediately, hooks require approval on first install. To verify, start a fresh session and send `Let's make a react todo list` — a working install auto-triggers `brainstorming` before any code is written. Version is tracked in `.version-bump.json` so `scripts/bump-version.sh` keeps it in sync.
-
-## The Basic Workflow
-
-1. **brainstorming** - Activates before building anything. Draws out what you actually want, and why, through questions that get you describing it, then plays its understanding back for correction. Small changes get agreed in chat; projects get a written design document a builder could plan from.
-
-2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
-
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
-
-4. **subagent-driven-development** or **executing-plans** - Activates with plan. Either dispatches a fresh subagent per task with a review after each (most thorough), or implements every task inline in the current session with one fresh review of the whole branch at the end (cheapest).
-
-5. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
-
-6. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
-
-7. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
-
-**The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
-
-## When Something Goes Wrong
-
-Sometimes a session misbehaves: a skill fires when it shouldn't, stays silent when it should, or the agent ignores its plan, repeats work, or burns more tokens than you'd expect. Ask your coding agent to "figure out what went wrong with superpowers in this session" and it will invoke the **diagnosing-superpowers** skill. To examine an earlier session, name it: "figure out what went wrong with superpowers in session `<id>`".
-
-The skill reads the session transcript, reports what happened with line-level evidence, and, if you want, packages a scrubbed bundle for a bug report.
-
-## Community
-
-Superpowers is built by [Jesse Vincent](https://blog.fsck.com) and the rest of the folks at [Prime Radiant](https://primeradiant.com).
-
-- **Discord**: [Join us](https://discord.gg/35wsABTejz) for community support, questions, and sharing what you're building with Superpowers
-- **Issues**: https://github.com/obra/superpowers/issues
-- **Release announcements**: [Sign up](https://primeradiant.com/superpowers/) to get notified about new versions
-
-## What's Inside
-
-### Skills Library
-
-**Testing**
-- **test-driven-development** - RED-GREEN-REFACTOR cycle (includes testing anti-patterns reference)
-
-**Debugging**
-- **systematic-debugging** - 4-phase root cause process (includes root-cause-tracing, defense-in-depth, condition-based-waiting techniques)
-- **verification-before-completion** - Ensure it's actually fixed
-- **diagnosing-superpowers** - Work out what went wrong in a session, with evidence; export a scrubbed bundle or file an issue
-
-**Collaboration** 
-- **brainstorming** - Drawing out intent before building
-- **writing-plans** - Detailed implementation plans
-- **executing-plans** - Inline plan execution: one context, one final review
-- **dispatching-parallel-agents** - Concurrent subagent workflows
-- **requesting-code-review** - Pre-review checklist
-- **receiving-code-review** - Responding to feedback
-- **using-git-worktrees** - Parallel development branches
-- **finishing-a-development-branch** - Merge/PR decision workflow
-- **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
-
-**Meta**
-- **writing-skills** - Create new skills following best practices (includes testing methodology)
-- **using-superpowers** - Introduction to the skills system
-
-## Philosophy
-
-- **Test-Driven Development** - Write tests first, always
-- **Systematic over ad-hoc** - Process over guessing
-- **Complexity reduction** - Simplicity as primary goal
-- **Evidence over claims** - Verify before declaring success
-
-Read [the original release announcement](https://blog.fsck.com/2025/10/09/superpowers/).
-
-## Contributing
-
-The general contribution process for Superpowers is below. Keep in mind that we don't generally accept contributions of new skills and that any updates to skills must work across all of the coding agents we support. We also don't accept agent-written PRs that fix issues filed by someone else unless a maintainer asked for one, even when you hit the same problem; add your report to the existing issue instead.
-
-1. Fork the repository
-2. Switch to the 'dev' branch
-3. Create a branch for your work
-4. Follow the `writing-skills` skill for creating and testing new and modified skills
-5. Submit a PR, filling in every section of the pull request template, including the summary a human writes in their own words.
-
-Skill-behavior tests use the drill eval harness from [superpowers-evals](https://github.com/prime-radiant-inc/superpowers-evals/), cloned into `evals/` — see `evals/README.md` for setup. Plugin-infrastructure tests live at `tests/` and run via the relevant `run-*.sh` or `npm test`.
-
-See `skills/writing-skills/SKILL.md` for the complete guide.
-
-## Updating
-
-Superpowers updates are somewhat coding-agent dependent, but are often automatic.
+- 完成官方資料欄位、座標系統與更新品質驗證。
+- 建立歷史 JSON 匯入與標準化流程。
+- 建立 GIS 與 PostGIS 查詢功能。
+- 實作 ETA Baseline 並建立測試資料集。
+- 實作候選收運點推薦與備案邏輯。
+- 加入 Web UI 與地圖呈現。
+- 視資料品質評估是否加入 Machine Learning。
+- 再評估 LLM Tool Calling 與 RAG 的必要性。
+- 完成實驗、比較、限制分析與 Demo。
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Visual companion telemetry
-
-Because skills and plugins don't provide any feedback to creators, we have no idea how many of you are using Superpowers. By default, the Prime Radiant logo on brainstorming's optional visual companion feature is loaded from our website. It includes the version of Superpowers in use. It does not include any details about your project, prompt, or coding agent. We don't see your clicks or anything about what you're building. This helps us have a rough idea of how many folks are using Superpowers and which version of Superpowers they're using. It's 100% optional. To disable this, set the environment variable `SUPERPOWERS_DISABLE_TELEMETRY` to any true value. Superpowers also honors Claude Code's `DISABLE_TELEMETRY` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` opt-outs.
+License 尚未決定。
